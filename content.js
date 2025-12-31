@@ -13,36 +13,38 @@ function processWPAHashes() {
   const preElements = document.querySelectorAll('pre');
   
   preElements.forEach(pre => {
+    // Skip if already processed
+    if (pre.dataset.wpaProcessed === 'true') {
+      return;
+    }
+    
     const text = pre.textContent;
     const lines = text.split('\n');
     
     // Check if this looks like WPA hash data
     if (lines.some(line => line.trim().startsWith('WPA*'))) {
-      // Create a new element to display decoded ESSIDs
-      const decodedDiv = document.createElement('div');
-      decodedDiv.style.cssText = 'margin-top: 10px; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;';
+      let modified = false;
       
-      const decodedESSIDs = new Set();
-      
-      lines.forEach(line => {
+      const newLines = lines.map(line => {
         if (line.trim().startsWith('WPA*')) {
           const parts = line.split('*');
           // The 6th element is at index 5 (0-based)
           if (parts.length > 5 && parts[5]) {
             const hexESSID = parts[5];
             const decodedESSID = hex2a(hexESSID);
-            decodedESSIDs.add(decodedESSID);
+            // Replace the hex with the decoded text
+            parts[5] = decodedESSID;
+            modified = true;
+            return parts.join('*');
           }
         }
+        return line;
       });
       
-      if (decodedESSIDs.size > 0) {
-        decodedDiv.innerHTML = '<strong>Decoded ESSID(s):</strong><br>' + 
-          Array.from(decodedESSIDs).map(essid => `&bull; ${essid}`).join('<br>');
-        
-        // Insert after the pre element's parent
-        const parent = pre.parentElement;
-        parent.insertAdjacentElement('afterend', decodedDiv);
+      if (modified) {
+        pre.textContent = newLines.join('\n');
+        // Mark as processed
+        pre.dataset.wpaProcessed = 'true';
       }
     }
   });
