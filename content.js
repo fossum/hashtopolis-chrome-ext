@@ -1,3 +1,19 @@
+// Check if current domain is allowed
+function isDomainAllowed(allowedDomains) {
+  if (!allowedDomains || allowedDomains.length === 0) {
+    return true; // Run on all sites if no domains specified
+  }
+  
+  const currentHost = window.location.hostname;
+  
+  return allowedDomains.some(domain => {
+    // Convert wildcard pattern to regex
+    const pattern = domain.replace(/\./g, '\\.').replace(/\*/g, '.*');
+    const regex = new RegExp('^' + pattern + '$');
+    return regex.test(currentHost);
+  });
+}
+
 // Function to decode hex to ASCII
 function hex2a(hex) {
   var str = '';
@@ -50,15 +66,23 @@ function processWPAHashes() {
   });
 }
 
-// Run when page loads
-processWPAHashes();
+// Initialize extension
+chrome.storage.sync.get(['allowedDomains'], function(result) {
+  const allowedDomains = result.allowedDomains || ['hashtopolis.*'];
+  
+  // Only run if current domain is allowed
+  if (isDomainAllowed(allowedDomains)) {
+    // Run when page loads
+    processWPAHashes();
 
-// Also observe for dynamic content changes
-const observer = new MutationObserver(() => {
-  processWPAHashes();
-});
+    // Also observe for dynamic content changes
+    const observer = new MutationObserver(() => {
+      processWPAHashes();
+    });
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
 });

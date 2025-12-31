@@ -1,16 +1,18 @@
 {
   "manifest_version": 3,
   "name": "WPA Hash ESSID Decoder",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Displays the sixth hex element (ESSID) from WPA hashes as decoded text",
-  "permissions": ["activeTab"],
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
-      "matches": ["*://hashtopolis.thefoss.org/*"],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
+  "options_page": "options.html",
   "icons": {
     "48": "icon48.png",
     "128": "icon128.png"
