@@ -120,6 +120,102 @@ function addSSIDColumn() {
   });
 }
 
+// Function to add duplicate removal checkbox
+function addDuplicateRemovalControl() {
+  // Look for the DataTables length control (show entries dropdown)
+  const lengthControl = document.querySelector('.dataTables_length');
+
+  if (!lengthControl || document.getElementById('hideDuplicates')) {
+    return; // Already added or control not found
+  }
+
+  // Create checkbox container
+  const checkboxContainer = document.createElement('label');
+  checkboxContainer.style.marginLeft = '20px';
+  checkboxContainer.style.display = 'inline-block';
+  checkboxContainer.style.verticalAlign = 'middle';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.id = 'hideDuplicates';
+  checkbox.style.marginRight = '5px';
+  checkbox.style.verticalAlign = 'middle';
+
+  const labelText = document.createTextNode('Hide duplicates (show oldest)');
+
+  checkboxContainer.appendChild(checkbox);
+  checkboxContainer.appendChild(labelText);
+
+  // Append to the same container as the length control
+  lengthControl.appendChild(checkboxContainer);
+
+  // Add event listener
+  checkbox.addEventListener('change', toggleDuplicates);
+
+  console.log('[WPA ESSID Decoder] Duplicate removal control added');
+}
+
+// Function to toggle duplicate rows
+function toggleDuplicates() {
+  const checkbox = document.getElementById('hideDuplicates');
+  if (!checkbox) return;
+
+  const hideDuplicates = checkbox.checked;
+  console.log('[WPA ESSID Decoder] Toggle duplicates:', hideDuplicates);
+
+  const table = document.querySelector('table#cracks, table.dataTable');
+  if (!table) return;
+
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+
+  if (hideDuplicates) {
+    // Track seen combinations of plaintext+SSID and their first occurrence (oldest)
+    const seenCombinations = new Map();
+
+    rows.forEach(row => {
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length === 0) return;
+
+      // Based on the table structure: Time found (0), Plaintext (1), SSID (2), Hash (3)...
+      // After we added the SSID column between Plaintext and Hash
+      let plaintext = '';
+      let ssid = '';
+
+      if (cells.length > 2) {
+        plaintext = cells[1].textContent.trim();
+        ssid = cells[2].textContent.trim();
+      }
+
+      if (plaintext) {
+        const combinationKey = plaintext + '::' + ssid;
+
+        if (seenCombinations.has(combinationKey)) {
+          // This is a duplicate, hide it
+          row.style.display = 'none';
+          row.dataset.duplicateHidden = 'true';
+        } else {
+          // First occurrence, keep it visible and track it
+          seenCombinations.set(combinationKey, row);
+          row.style.display = '';
+          row.dataset.duplicateHidden = 'false';
+        }
+      }
+    });
+
+    console.log('[WPA ESSID Decoder] Hid duplicates, showing', seenCombinations.size, 'unique plaintext+SSID combinations');
+  } else {
+    // Show all rows
+    rows.forEach(row => {
+      row.style.display = '';
+      row.dataset.duplicateHidden = 'false';
+    });
+    console.log('[WPA ESSID Decoder] Showing all rows');
+  }
+}
+
 // Function to extract and decode the 6th element from WPA hash lines
 function processWPAHashes() {
   // Find all pre elements
@@ -172,11 +268,13 @@ chrome.storage.sync.get(['allowedDomains'], function(result) {
     // Run when page loads
     processWPAHashes();
     addSSIDColumn();
+    addDuplicateRemovalControl();
 
     // Also observe for dynamic content changes
     const observer = new MutationObserver(() => {
       processWPAHashes();
       addSSIDColumn();
+      addDuplicateRemovalControl();
     });
 
     observer.observe(document.body, {
