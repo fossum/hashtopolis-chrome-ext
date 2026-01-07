@@ -24,9 +24,15 @@ Chrome extension (Manifest V3) that decodes WPA hash ESSID values on hashtopolis
    - `toggleDuplicates()` - Filters duplicate plaintext+SSID combinations
    - `toggleCracksConversion()` - Shows/hides SSID column
 
-4. **[options.js](options.js)** - Domain filtering settings UI
-5. **[manifest.json](manifest.json)** - Extension config
-   - **CRITICAL**: Script load order: `["hashes.js", "cracks.js", "content.js"]`
+4. **[search.js](search.js)** - Search page functionality (~180 lines)
+   - `processSearchWPAHashes()` / `processSearchWPAHashesImpl()` - Process `<pre>` elements
+   - `addSearchConversionToggleControl()` - Adds "Show SSID" checkbox in new table row
+   - `toggleSearchConversion()` - Toggles hex↔text in pre elements
+   - Stores original hex in `pre.dataset.wpaOriginal` for toggle restoration
+
+5. **[options.js](options.js)** - Domain filtering settings UI
+6. **[manifest.json](manifest.json)** - Extension config
+   - **CRITICAL**: Script load order: `["hashes.js", "cracks.js", "search.js", "content.js"]`
    - Functions must be available before content.js initialization runs
 
 ## Architecture & Key Components
@@ -35,9 +41,10 @@ Chrome extension (Manifest V3) that decodes WPA hash ESSID values on hashtopolis
 Functions are page-agnostic and use feature detection:
 - `processWPAHashes()` only runs if `<pre>` elements with WPA hashes exist
 - `addSSIDColumn()` only runs if table has adjacent "Plaintext" and "Hash" columns
+- `processSearchWPAHashes()` only runs if `<pre>` elements with WPA hashes exist
 - Initialization uses `typeof functionName === 'function'` to check module availability
 
-### Two Processing Modes
+### Three Processing Modes
 
 #### 1. Hashes Page (`<pre>` elements)
 - **Function**: `processWPAHashesImpl()` in hashes.js
@@ -51,9 +58,12 @@ Functions are page-agnostic and use feature detection:
 - **Toggle mechanism**: CSS `display: none/''` on column (no data removal)
 - **Bonus feature**: `toggleDuplicates()` - Hides duplicate plaintext+SSID combinations, showing only oldest
 
-### Critical Data Structure
-WPA hash format: `WPA*02*hash*mac1*mac2*HEXSSID*data*...`
-- Element at index 5 (0-based) = hex-encoded SSID
+#### 3. Search Page (`<pre>` elements)
+- **Function**: `processSearchWPAHashesImpl()` in search.js
+- In-place hex→text replacement in pre-formatted hash strings
+- **Toggle mechanism**: Stores original in `pre.dataset.wpaOriginal`, swaps on toggle
+- **Checkbox location**: New row inserted after `/html/body/div[1]/form/div/div/table/tbody/tr[1]`
+- Marked with `pre.dataset.wpaProcessed = 'true'`
 - Use `hex2a()` to decode to readable text
 - Example: `4a554d50464f524a4f59` → `JUMPFORJOY`
 
@@ -165,12 +175,13 @@ function someFunctionImpl() {
 2. **Partial text matching**: Use exact match for "Hash" header (`text === 'hash'`) to avoid matching "Hashlist"
 3. **CSS class management**: Remove ALL sorting classes (`sorting`, `sorting_asc`, `sorting_desc`) before setting new state
 4. **Duplicate detection**: Compare `plaintext + '::' + ssid`, not just hash values
-5. **Module load order**: manifest.json must load hashes.js and cracks.js BEFORE content.js
+5. **Module load order**: manifest.json must load hashes.js, cracks.js, and search.js BEFORE content.js
 6. **Function availability**: Always check `typeof functionName === 'function'` before cross-module calls
 
 ## File Reference
 - [content.js](content.js) - Main coordinator with shared utilities (~40 lines)
 - [hashes.js](hashes.js) - Hashes page functionality (~200 lines)
 - [cracks.js](cracks.js) - Cracks page functionality (~320 lines)
+- [search.js](search.js) - Search page functionality (~180 lines)
 - [options.js](options.js) - Domain settings management
 - [manifest.json](manifest.json) - Extension config, runs at `document_idle`

@@ -38,6 +38,8 @@ function toggleConversion(enabled) {
   if (typeof toggleCracksConversion === 'function') {
     toggleCracksConversion(enabled);
   }
+
+  // Note: search.js doesn't use toggle, it's a converter tool
 }
 
 // Initialize extension
@@ -51,6 +53,7 @@ chrome.storage.sync.get(['allowedDomains'], function(result) {
     if (typeof addSSIDColumn === 'function') addSSIDColumn();
     if (typeof addConversionToggleControl === 'function') addConversionToggleControl();
     if (typeof addDuplicateRemovalControl === 'function') addDuplicateRemovalControl();
+    if (typeof addSearchConversionToggleControl === 'function') addSearchConversionToggleControl();
 
     // Also observe for dynamic content changes
     const observer = new MutationObserver(() => {
@@ -58,6 +61,7 @@ chrome.storage.sync.get(['allowedDomains'], function(result) {
       if (typeof addSSIDColumn === 'function') addSSIDColumn();
       if (typeof addConversionToggleControl === 'function') addConversionToggleControl();
       if (typeof addDuplicateRemovalControl === 'function') addDuplicateRemovalControl();
+      if (typeof addSearchConversionToggleControl === 'function') addSearchConversionToggleControl();
     });
 
     observer.observe(document.body, {
