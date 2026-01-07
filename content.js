@@ -68,6 +68,63 @@ function addSSIDColumn() {
         newHeader.setAttribute('aria-controls', 'cracks');
         newHeader.setAttribute('rowspan', '1');
         newHeader.setAttribute('colspan', '1');
+        newHeader.style.cursor = 'pointer';
+
+        // Add click handler for sorting
+        let sortDirection = 'asc';
+        newHeader.addEventListener('click', function() {
+          const tbody = table.querySelector('tbody');
+          if (!tbody) return;
+
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+
+          // Sort rows based on SSID column (index 2 after our insertion)
+          rows.sort((a, b) => {
+            const aCells = a.querySelectorAll('td');
+            const bCells = b.querySelectorAll('td');
+
+            if (aCells.length <= 2 || bCells.length <= 2) return 0;
+
+            const aSSID = aCells[2].textContent.trim().toLowerCase();
+            const bSSID = bCells[2].textContent.trim().toLowerCase();
+
+            if (sortDirection === 'asc') {
+              return aSSID.localeCompare(bSSID);
+            } else {
+              return bSSID.localeCompare(aSSID);
+            }
+          });
+
+          // Reattach rows in sorted order
+          rows.forEach(row => tbody.appendChild(row));
+
+          // Toggle sort direction
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+
+          // Update header classes to show sort direction
+          headers.forEach(h => {
+            h.classList.remove('sorting_asc', 'sorting_desc');
+            if (!h.classList.contains('sorting')) {
+              h.classList.add('sorting');
+            }
+          });
+          newHeader.classList.remove('sorting', 'sorting_asc', 'sorting_desc');
+          newHeader.classList.add(sortDirection === 'desc' ? 'sorting_asc' : 'sorting_desc');
+
+          console.log('[WPA ESSID Decoder] Sorted by SSID:', sortDirection === 'desc' ? 'asc' : 'desc');
+        });
+
+        // Add listeners to other headers to reset SSID column styling
+        headers.forEach(header => {
+          header.addEventListener('click', function() {
+            // Reset SSID header to default sorting state
+            newHeader.classList.remove('sorting_asc', 'sorting_desc');
+            if (!newHeader.classList.contains('sorting')) {
+              newHeader.classList.add('sorting');
+            }
+          });
+        });
+
         headerRow.insertBefore(newHeader, headers[hashIndex]);
         table.dataset.ssidHeaderAdded = 'true';
         console.log('[WPA ESSID Decoder] Header added!');
